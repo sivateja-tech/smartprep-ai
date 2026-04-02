@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const prisma = require("../lib/prisma");
+const logActivity=require("../utils/activityLogger");
 
 exports.register = async (req, res) => {
    // registration logic
@@ -85,6 +86,7 @@ exports.login = async (req, res) => {
       }
     });
 
+    await logActivity(user.id,"USER_LOGIN","auth");
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

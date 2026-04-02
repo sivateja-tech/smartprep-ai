@@ -1,6 +1,6 @@
 const prisma = require("../lib/prisma");
-
-// 1️⃣ Create Quiz (Admin)
+const logActivity = require("../utils/activityLogger");
+const redis = require("../lib/redis");
 exports.createQuiz = async (req, res) => {
   try {
     const { title, topic, difficulty } = req.body;
@@ -16,6 +16,7 @@ exports.createQuiz = async (req, res) => {
         difficulty,
       },
     });
+     await redis.flushAll();
 
     res.status(201).json({
       message: "Quiz created successfully",
@@ -29,7 +30,6 @@ exports.createQuiz = async (req, res) => {
 };
 
 
-// 2️⃣ Add Question to Quiz
 exports.addQuestionToQuiz = async (req, res) => {
   try {
     const { quizId } = req.params;
@@ -62,23 +62,62 @@ exports.addQuestionToQuiz = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-exports.getAllQuizzes=async (req,res)=>{
-  try{
-    const quizzes=await prisma.quiz.findMany({
-      select:{
-        id:true,
-        title:true,
-        topic:true,
-        difficulty:true,
-        createdAt:true
+exports.getAllQuizzes = async (req, res) => {
+try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    
+    const cacheKey = `quizzes:page:${page}:limit:${limit}`;
+
+    // 1️⃣ Check cache
+    const cachedData = await redis.get(cacheKey);
+
+    if (cachedData) {
+      return res.json({
+        source: "cache",
+        ...JSON.parse(cachedData)
+      });
+    }
+
+    // 2️⃣ Fetch from DB
+    const quizzes = await prisma.quiz.findMany({
+      skip: skip,
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        topic: true,
+        difficulty: true,
+        createdAt: true
       }
     });
-    res.status(200).json(quizzes);
-  }catch(error){
-    console.log(error);
-    res.status(500).json({message:"server errror"});
-  }
 
+    const total = await prisma.quiz.count();
+
+    const responseData = {
+      page,
+      limit,
+      total,
+      data: quizzes
+    };
+
+    // 3️⃣ Store in Redis (60 sec)
+    await redis.set(cacheKey, JSON.stringify(responseData), {
+      EX: 60
+    });
+
+    res.json({
+      source: "db",
+      ...responseData
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  
+}
 };
 exports.getQuizById=async (req,res)=>{
  
@@ -132,6 +171,7 @@ exports.submitQuiz = async (req, res) => {
     });
 
     res.json({ score, total, percentage });
+    await logActivity(userId,"quiz_ATTEMPT","quiz",quizId);
 
   } catch (err) {
     res.status(500).json({ message: "Server error" });

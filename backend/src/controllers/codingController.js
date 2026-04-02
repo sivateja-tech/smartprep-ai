@@ -1,4 +1,5 @@
 const prisma=require('../lib/prisma');
+const logActivity = require('../utils/activityLogger');
 exports.createCodingQuestion=async (req,res)=>{
     try{
         const {title,description,difficulty,testCases}=req.body;
@@ -99,7 +100,7 @@ exports.submitCode=async(req,res)=>{
       totalCases: total,
       percentage
     });
-
+    await logActivity(userId,"CODE_SUBMISSION","coding",questionId);
   }
   catch (error) {
     console.error(error);

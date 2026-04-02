@@ -88,3 +88,11 @@ model InterviewSession {
   score     Int
   createdAt DateTime @default(now())
 }
+model ActivityLog{
+  id Int @id @default(autoincrement())
+  userId Int?
+  action String
+  entity String?
+  entityId Int?
+  createdAt DateTime @default(now())
+}
