@@ -1,39 +1,31 @@
-# SmartPrep Backend
+# 🚀 SmartPrep Backend
 
 ![Node.js](https://img.shields.io/badge/Node.js-18-green)
 ![Express](https://img.shields.io/badge/Express.js-Backend-black)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
 ![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748)
 ![Redis](https://img.shields.io/badge/Redis-Caching-red)
+![BullMQ](https://img.shields.io/badge/BullMQ-Queue-orange)
 
-SmartPrep Backend is a scalable REST API designed for technical preparation through quizzes and coding challenges.
-It includes performance analytics, leaderboard ranking, and Redis-based caching for optimized performance.
+SmartPrep Backend is a **scalable REST API** for technical interview preparation, enabling quiz practice, coding challenges, performance analytics, and real-time system optimization using caching and background processing.
 
 ---
 
-# Architecture
+# 🧠 Architecture
 
 Client (Frontend / Postman)
 │
 ▼
 Express.js Server
 │
-┌──────┴────────┐
-▼               ▼
-PostgreSQL     Redis
-(Database)     (Cache)
-
-The backend follows a layered architecture:
-
-* Routes → API endpoints
-* Controllers → Business logic
-* Middleware → Auth & security
-* Prisma → Database access
-* Redis → Performance caching
+┌──────┴───────────────┐
+▼                      ▼
+PostgreSQL           Redis
+(Database)     (Cache + Queue)
 
 ---
 
-# Tech Stack
+# 🛠 Tech Stack
 
 Backend
 
@@ -52,24 +44,32 @@ Caching
 
 * Redis
 
+Queue System
+
+* BullMQ
+
 Authentication
 
 * JWT (JSON Web Token)
 * bcrypt
 
+Email Service
+
+* Nodemailer
+
 ---
 
-# Key Features
+# ✨ Key Features
 
-## Authentication & Authorization
+## 🔐 Authentication & Authorization
 
 * User registration & login
 * JWT-based authentication
-* Role-based access (Admin / Student)
+* Role-based access control (Admin / Student)
 
 ---
 
-## Quiz Module
+## 📝 Quiz Module
 
 Admin:
 
@@ -84,81 +84,103 @@ Student:
 
 ---
 
-## Quiz Analytics
-
-* Total attempts
-* Performance percentage
-* Topic-based statistics
-
----
-
-## Coding Module
+## 💻 Coding Module
 
 Admin:
 
-* Create coding problems with test cases
+* Create coding questions with test cases
 
 Student:
 
-* View problems
-* Submit code
+* View coding problems
+* Submit solutions
 
 Evaluation:
 
-* Test case-based checking
-* Score + percentage calculation
+* Test case-based scoring
+* Automatic result calculation
 
 ---
 
-## Coding Analytics
+## 📊 Analytics
 
-* Total submissions
+### Quiz Analytics
+
+* Total attempts
+* Performance percentage
+* Topic-wise tracking
+
+### Coding Analytics
+
+* Submission tracking
 * Average accuracy
-* Difficulty-wise performance
+* Difficulty breakdown
 
 ---
 
-## Leaderboard System
+## 🏆 Leaderboard
 
 * Ranks users based on:
 
   * Quiz performance
   * Coding performance
-* Combined score ranking
+* Combined scoring system
 
 ---
 
-## Admin Analytics
+## 🧑‍💼 Admin Dashboard
 
-System-wide insights:
+Provides system-wide insights:
 
 * Total users
 * Total quizzes
-* Total attempts
+* Total submissions
 * Average performance
 
 ---
 
-## Pagination
+## ⚡ Performance Optimization
 
-Efficient data handling:
+### Pagination
+
+Efficient data retrieval:
 
 GET /api/quiz?page=1&limit=10
 
-Prevents large dataset overload.
+---
+
+### Rate Limiting
+
+* Prevents API abuse
+* Limits excessive requests
 
 ---
 
-## Rate Limiting
+### Redis Caching
 
-Protects API from abuse:
+Used for:
 
-* Limits number of requests per minute
-* Prevents spam & DDoS
+* Quiz listing API
+* Reduces database load
+
+Flow:
+
+Request → Check Redis → Return cache OR fetch DB → Store cache
+
+Cache expiry: 60 seconds
 
 ---
 
-## Activity Logging
+### Cache Invalidation
+
+Cache is cleared when:
+
+* New quiz is created
+* Questions are updated
+
+---
+
+## 📜 Activity Logging
 
 Tracks user actions:
 
@@ -170,47 +192,44 @@ Stored in database for auditing.
 
 ---
 
-## Redis Caching (Performance Optimization)
+## ⚙️ Background Job Processing (BullMQ)
 
-Caching implemented for:
-
-GET /api/quiz
+* Handles quiz submission asynchronously
+* Improves API response time
 
 Flow:
 
-Request
+User submits quiz
 ↓
-Check Redis
+Job added to Redis queue
 ↓
-If cached → return instantly
-Else → fetch from DB → store in cache
-
-Cache expiry:
-
-```id="v4n0zp"
-60 seconds
-```
+Worker processes job
+↓
+Score calculated & saved
 
 ---
 
-## Cache Invalidation
+## 📧 Email Notifications
 
-When data changes:
-
-* Create quiz
-* Add question
-
-Cache is cleared:
-
-```id="4qutbn"
-redis.flushAll()
-```
-
-Ensures fresh data is always served.
+* Sent after quiz submission
+* Implemented using Nodemailer
+* Runs inside background worker
 
 ---
 
-# Project Structure
+## ❤️ Health Monitoring API
+
+GET /api/health
+
+Checks:
+
+* Database connection
+* Redis connection
+* Server uptime
+
+---
+
+# 📁 Project Structure
 
 backend
 src
@@ -220,6 +239,7 @@ quizController.js
 codingController.js
 leaderboardController.js
 adminController.js
+healthController.js
 
 routes
 authRoutes.js
@@ -227,6 +247,7 @@ quizRoutes.js
 codingRoutes.js
 leaderboardRoutes.js
 adminRoutes.js
+healthRoutes.js
 
 middleware
 authMiddleware.js
@@ -236,8 +257,15 @@ lib
 prisma.js
 redis.js
 
+queues
+quizQueue.js
+
+workers
+quizWorker.js
+
 utils
 activityLogger.js
+sendEmail.js
 
 prisma
 schema.prisma
@@ -246,21 +274,21 @@ server.js
 
 ---
 
-# Database Models
+# 🗄 Database Models
 
-User
-Quiz
-QuizQuestion
-QuizAttempt
-CodingQuestion
-Submission
-ActivityLog
+* User
+* Quiz
+* QuizQuestion
+* QuizAttempt
+* CodingQuestion
+* Submission
+* ActivityLog
 
 ---
 
-# API Overview
+# 🌐 API Endpoints
 
-## Authentication
+## Auth
 
 POST /api/auth/register
 POST /api/auth/login
@@ -300,25 +328,34 @@ GET /api/admin/system-analytics
 
 ---
 
-# Environment Variables
+## Health
+
+GET /api/health
+
+---
+
+# ⚙️ Environment Variables
 
 Create `.env` file:
 
-DATABASE_URL="postgresql://user:password@localhost:5432/smartprep-ai"
+DATABASE_URL="postgresql://user:password@localhost:5432/smartprep"
 
 JWT_SECRET="your_secret_key"
 
 PORT=5000
 
+EMAIL_USER=[your_email@gmail.com](mailto:your_email@gmail.com)
+EMAIL_PASS=your_app_password
+
 ---
 
-# Installation
+# 🛠 Installation
 
 Clone repository:
 
-git clone https://github.com/sivateja-tech/smartprep-ai/
+git clone https://github.com/yourusername/smartprep.git
 
-Go to backend:
+Navigate:
 
 cd smartprep/backend
 
@@ -328,9 +365,9 @@ npm install
 
 ---
 
-# Database Setup
+# 🗄 Database Setup
 
-Run migrations:
+Run migration:
 
 npx prisma migrate dev
 
@@ -340,7 +377,7 @@ npx prisma generate
 
 ---
 
-# Running Server
+# ▶️ Running the Backend
 
 npm run dev
 
@@ -350,26 +387,46 @@ http://localhost:5000
 
 ---
 
-# Redis Setup
+# 🔴 Redis Setup
 
-Run Redis (Docker recommended):
+Run Redis (Docker):
 
-```id="k8srsg"
+```bash
 docker run -p 6379:6379 redis
 ```
 
 ---
 
-# Future Improvements
+# 👷 Run Worker
 
-* Background job queue (BullMQ)
-* Email notifications
-* Redis advanced caching strategies
-* Code execution sandbox
-* Bookmark system
+```bash
+node src/workers/quizWorker.js
+```
 
 ---
 
-# Author
+# 🧪 Test Credentials
 
-Developed as a backend-focused project to practice scalable API design, database modeling, caching, and system optimization.
+Admin:
+email: [admin@test.com](mailto:admin@test.com)
+password: 123456
+
+Student:
+email: [siva@test.com](mailto:student@test.com)
+password: 123456
+
+---
+
+# 🚀 Future Improvements
+
+* Real code execution sandbox
+* WebSocket-based live leaderboard
+* Advanced caching strategies
+* Email templates with HTML
+* Microservices architecture
+
+---
+
+# 👨‍💻 Author
+
+Developed as a backend-focused project demonstrating scalable API design, caching, asynchronous processing, and system optimization.
