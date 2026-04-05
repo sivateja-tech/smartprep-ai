@@ -1,6 +1,7 @@
 const prisma = require("../lib/prisma");
 const logActivity = require("../utils/activityLogger");
 const redis = require("../lib/redis");
+const quizQueue=require("../queues/quizQueue")
 exports.createQuiz = async (req, res) => {
   try {
     const { title, topic, difficulty } = req.body;
@@ -141,43 +142,24 @@ exports.getQuizById=async (req,res)=>{
 };
 exports.submitQuiz = async (req, res) => {
   try {
-    const { quizId, answers } = req.body;
     const userId = req.userId;
+    const { quizId, answers } = req.body;
 
-    const questions = await prisma.quizQuestion.findMany({
-      where: { quizId: parseInt(quizId) }
+    await quizQueue.add("submitQuiz", {
+      userId,
+      quizId,
+      answers
     });
 
-    let score = 0;
-
-    questions.forEach(q => {
-      const userAnswer = answers.find(a => a.questionId === q.id);
-      if (userAnswer && userAnswer.selectedAns === q.correctAns) {
-        score++;
-      }
+    res.json({
+      message: "Quiz submitted successfully. Processing in background."
     });
 
-    const total = questions.length;
-    const percentage = (score / total) * 100;
-
-    await prisma.quizAttempt.create({
-      data: {
-        userId,
-        quizId: parseInt(quizId),
-        score,
-        total,
-        percentage
-      }
-    });
-
-    res.json({ score, total, percentage });
-    await logActivity(userId,"quiz_ATTEMPT","quiz",quizId);
-
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error submitting quiz" });
   }
 };
-// 6️⃣ Student Quiz Analytics
 exports.getQuizAnalytics = async (req, res) => {
   try {
     const userId = req.userId;

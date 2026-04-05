@@ -8,6 +8,9 @@ const codingRoutes=require("./src/routes/codingRoutes");
 const mlRoutes=require("./src/routes/mlRoutes");
 const leaderboardRoutes=require("./src/routes/leaderboardRoutes");
 const adminRoutes = require("./src/routes/adminRoutes");
+const healthRoutes = require("./src/routes/healthRoutes");
+
+
 const app = express();
 const limiter=rateLimit({
   windowMs:60*1000,
@@ -25,6 +28,7 @@ app.use("/api/coding",codingRoutes);
 app.use("/api/leaderboard",leaderboardRoutes);
 app.use("/api/ml",mlRoutes);
 app.use("/api/admin",adminRoutes);
+app.use("/api/health", healthRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "SmartPrep AI+ Backend Running 🚀" });
