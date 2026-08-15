@@ -2,37 +2,44 @@
 
 SmartPrep is a backend system for technical placement preparation.
 
-It provides APIs for quizzes, coding challenges, user authentication, performance tracking, leaderboards, and admin analytics.
+It provides REST APIs for quizzes, coding challenges, authentication, performance analytics, leaderboards, admin analytics, activity tracking, request validation, rate limiting, email notifications, and real code execution.
 
 ---
 
 ## Features
 
-### Authentication
+### 1. Authentication and Authorization
 
 - User registration and login
-- JWT authentication
+- JWT-based authentication
 - Password hashing using bcrypt
+- Protected API endpoints
+- Role-based access control
 - Admin and Student roles
-- Protected APIs
 
-### Quiz Module
+---
 
-Admin can:
+### 2. Quiz Module
+
+Admins can:
 
 - Create quizzes
-- Add questions
+- Add quiz questions
+- Configure correct answers
 
 Students can:
 
-- View quizzes
+- View available quizzes
 - Attempt quizzes
 - Submit answers
-- Get score and percentage
+- Receive scores
+- Receive percentages
 
-### Quiz Pagination
+---
 
-Quiz APIs support pagination.
+### 3. Quiz Pagination
+
+Quiz listing supports pagination.
 
 Example:
 
