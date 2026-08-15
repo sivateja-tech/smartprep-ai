@@ -53,7 +53,7 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if user exists
+    
     const user = await prisma.user.findUnique({
       where: { email }
     });

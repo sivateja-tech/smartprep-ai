@@ -3,10 +3,10 @@ const redis = require("../lib/redis");
 
 exports.getHealth = async (req, res) => {
   try {
-    // Check DB
+    
     await prisma.$queryRaw`SELECT 1`;
 
-    // Check Redis
+    
     await redis.ping();
 
     res.json({

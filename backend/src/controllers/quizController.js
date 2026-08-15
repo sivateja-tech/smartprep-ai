@@ -71,8 +71,6 @@ try {
 
     
     const cacheKey = `quizzes:page:${page}:limit:${limit}`;
-
-    // 1️⃣ Check cache
     const cachedData = await redis.get(cacheKey);
 
     if (cachedData) {
@@ -81,8 +79,6 @@ try {
         ...JSON.parse(cachedData)
       });
     }
-
-    // 2️⃣ Fetch from DB
     const quizzes = await prisma.quiz.findMany({
       skip: skip,
       take: limit,
@@ -103,8 +99,6 @@ try {
       total,
       data: quizzes
     };
-
-    // 3️⃣ Store in Redis (60 sec)
     await redis.set(cacheKey, JSON.stringify(responseData), {
       EX: 60
     });
