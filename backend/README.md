@@ -8,7 +8,7 @@ It provides APIs for quizzes, coding challenges, user authentication, performanc
 
 ## Features
 
-### 1. Authentication
+### Authentication
 
 - User registration and login
 - JWT authentication
@@ -16,9 +16,7 @@ It provides APIs for quizzes, coding challenges, user authentication, performanc
 - Admin and Student roles
 - Protected APIs
 
----
-
-### 2. Quiz Module
+### Quiz Module
 
 Admin can:
 
@@ -32,9 +30,7 @@ Students can:
 - Submit answers
 - Get score and percentage
 
----
-
-### 3. Quiz Pagination
+### Quiz Pagination
 
 Quiz APIs support pagination.
 
