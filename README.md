@@ -1,24 +1,23 @@
 # SmartPrep AI — Backend
 
-A backend platform for quiz-based assessments and coding challenges, featuring role-based authentication, automated code evaluation, Redis caching, asynchronous job processing, and performance analytics.
+A backend platform for quiz-based learning and coding assessments, built with Node.js, Express.js, PostgreSQL, Prisma ORM, Redis, BullMQ, Judge0, and the Google Gemini API.
 
-## Overview
-
-SmartPrep AI provides APIs for students to practice quizzes and coding problems while enabling administrators to manage assessments and monitor platform activity. It combines secure authentication, database-backed assessment workflows, multi-language code execution, and background processing to deliver a responsive assessment experience.
+SmartPrep AI enables students to practice quizzes and coding problems while providing administrators with assessment management, performance analytics, and platform monitoring capabilities.
 
 ## Key Features
 
-- **Authentication & Authorization:** JWT-based authentication, bcrypt password hashing, and role-based access control (RBAC) for Admin and Student roles.
-- **Quiz Management:** Create quizzes, manage questions, retrieve paginated quiz listings, and submit answers.
-- **Coding Assessments:** Create coding challenges, configure test cases, execute submissions, and automatically evaluate results.
-- **Multi-language Execution:** Integrate Judge0 for code compilation and execution.
-- **Background Processing:** Use BullMQ to process quiz submissions and scoring asynchronously.
-- **Redis Caching:** Cache paginated quiz listings to reduce database queries and improve response times.
-- **Analytics:** Track quiz performance, coding submissions, topic-wise results, and leaderboard rankings.
-- **Input Validation:** Validate incoming requests using Zod schemas.
-- **Rate Limiting:** Protect API endpoints against excessive requests.
-- **Activity Logging:** Record relevant platform activity for monitoring and analysis.
-- **Health Monitoring:** Check database and Redis connectivity through a health endpoint.
+- **Authentication & Authorization:** JWT authentication, bcrypt password hashing, and role-based access control (RBAC) for Admin and Student roles.
+- **Quiz Management:** Create quizzes, manage questions, retrieve paginated quizzes, and submit answers.
+- **AI-Powered Question Generation:** Integrate the Google Gemini API to generate quiz and practice questions.
+- **Coding Assessments:** Create coding challenges, configure test cases, submit code, and evaluate solutions automatically.
+- **Multi-language Code Execution:** Integrate Judge0 to compile and execute code in supported programming languages.
+- **Asynchronous Processing:** Use BullMQ and Redis to process quiz submissions and scoring in the background.
+- **Redis Caching:** Cache paginated quiz listings to reduce database queries and improve response latency.
+- **Performance Analytics:** Track quiz attempts, topic-wise performance, coding submissions, and leaderboard rankings.
+- **Request Validation:** Validate incoming request payloads with Zod.
+- **Rate Limiting:** Restrict excessive API requests to protect application resources.
+- **Activity Logging:** Track relevant user and platform activities.
+- **Health Monitoring:** Check PostgreSQL and Redis connectivity.
 
 ## Performance Metrics
 
@@ -26,84 +25,77 @@ SmartPrep AI provides APIs for students to practice quizzes and coding problems 
 |---|---|
 | Relational database schema | 8 tables |
 | REST API endpoints | 15+ |
-| Authentication roles | Admin and Student |
-| Paginated quiz retrieval | Improved from 88 ms to 17 ms |
-| Quiz retrieval improvement | Approximately 80.7% lower latency |
-| Quiz submission response | Under 40 ms in measured tests |
+| User roles | 2 — Admin and Student |
+| Paginated quiz retrieval | Reduced from 88 ms to 17 ms |
+| Quiz retrieval latency reduction | Approximately 80.7% |
+| Quiz submission API response | Under 40 ms in measured tests |
 | Code execution | Judge0 integration for multiple languages |
 | Per-test-case execution time | Approximately 100 ms in measured tests |
 | Per-test-case memory usage | Approximately 17 MB in measured tests |
-| Code submission rate limit | 10 requests per minute, subject to configured limiter scope |
+| Code submission rate limit | 10 requests per minute, according to configured limiter scope |
 
-*Performance figures reflect measured results and may vary with database size, cache state, hosting environment, network latency, and code complexity. Quiz submission acknowledgement time measures the API response, not the completion time of background scoring.*
+*Performance measurements depend on the environment, workload, cache state, network latency, and test-case complexity. The quiz submission response time measures the initial API acknowledgement, not completion of background scoring.*
 
 ### Performance Optimizations
 
-**1. Redis caching**
+**Redis caching:** Cached paginated quiz listings reduced measured retrieval latency from 88 ms to 17 ms.
 
-Paginated quiz listings are cached using keys that include pagination parameters. Repeated requests can be served from Redis instead of querying PostgreSQL for the same listing, reducing measured retrieval latency from 88 ms to 17 ms.
+**Asynchronous quiz processing:** BullMQ moves scoring and persistence work into a background worker, keeping the submission API responsive.
 
-**2. Asynchronous quiz processing**
-
-Quiz submission is placed on a BullMQ queue backed by Redis. The API acknowledges the request while a background worker evaluates answers and persists the result. This keeps the request path lightweight; the final result may become available after the response.
-
-**3. Rate limiting**
-
-Rate limiting helps control excessive API usage, particularly for code execution endpoints, where each submission can consume external execution resources.
+**Rate limiting:** Limits excessive code-submission requests and helps control resource consumption.
 
 ## Tech Stack
 
 **Backend:** Node.js, Express.js  
 **Database:** PostgreSQL, Prisma ORM  
-**Authentication:** JWT, bcrypt, role-based access control  
-**Caching & Queues:** Redis, BullMQ  
+**Authentication:** JWT, bcrypt, RBAC  
+**AI Integration:** Google Gemini API  
+**Caching & Job Queues:** Redis, BullMQ  
 **Code Execution:** Judge0, Axios  
 **Validation & Security:** Zod, express-rate-limit  
-**Testing & API Tools:** Postman, automated tests where configured  
-**Email:** Nodemailer, if enabled in the current configuration  
+**API Testing:** Postman  
 **Development Tools:** Git, GitHub, VS Code
 
 ## Architecture
 
 ```text
-                 Client / Postman
-                        |
-                        v
-                 Express.js API
-                        |
-          +-------------+-------------+
-          |             |             |
-          v             v             v
-    Authentication   Validation   Rate Limiting
-     JWT + bcrypt       Zod
-          |
-          v
-      API Routes
-          |
-    +-----+----------+----------------+
-    |                |                |
-    v                v                v
- PostgreSQL        Redis            Judge0
-  via Prisma       Cache          Code Execution
-    |
-    v
- Quiz Attempts / Coding Results
-
- Quiz Submission
-        |
-        v
-    BullMQ Queue
-        |
-        v
- Background Worker
-        |
-        v
- Score Calculation and Database Persistence
+                    Client / Postman
+                           |
+                           v
+                    Express.js API
+                           |
+             +-------------+-------------+
+             |             |             |
+             v             v             v
+       Authentication  Validation   Rate Limiting
+        JWT + bcrypt      Zod
+             |
+             v
+          API Routes
+             |
+      +------+------+-------------------+
+      |             |                   |
+      v             v                   v
+  PostgreSQL      Redis               External APIs
+   via Prisma     Caching              |         |
+      |                                v         v
+      v                             Gemini     Judge0
+ Quiz Attempts                   AI Questions  Code Execution
+ Coding Results
+      ^
+      |
+  BullMQ Worker
+      ^
+      |
+  Redis-backed Queue
+      |
+      v
+ Quiz Submission and Background Scoring
 ```
 
 ## Project Structure
 
-The following is a representative structure. Adjust directory names to match your repository.
+The following is a representative structure. Adjust it to match the actual folders and filenames in your repository.
 
 ```text
 smartprep-backend/
@@ -130,30 +122,29 @@ smartprep-backend/
 
 ### Prerequisites
 
-Install or configure the following:
-
 - Node.js and npm
 - PostgreSQL
 - Redis
-- Judge0 access, using the configured Judge0 endpoint
+- Google Gemini API key
+- Judge0 API endpoint or service access
 - Git
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/sivateja-tech/SmartPrep-AI.git
 cd SmartPrep-AI
 ```
 
-Replace the repository URL and folder name if your actual GitHub repository uses different values.
+Replace the repository URL and directory name if your actual GitHub repository differs.
 
-### 2. Install dependencies
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Configure environment variables
+### 3. Configure Environment Variables
 
 Create a `.env` file in the backend root directory.
 
@@ -162,30 +153,31 @@ PORT=5000
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE_NAME"
 JWT_SECRET="replace_with_a_strong_random_secret"
 REDIS_URL="redis://localhost:6379"
+GEMINI_API_KEY="your_gemini_api_key"
 JUDGE0_URL="https://ce.judge0.com"
 ```
 
-Add any additional environment variables required by your email configuration or other services.
+Add any additional variables required by your implementation, such as email configuration.
 
-**Important:** These are example variable names. Confirm that they match the variables referenced by your source code. Never commit real credentials, database URLs, or JWT secrets to GitHub.
+**Important:** Use the exact environment-variable names expected by your source code. Keep your `.env` file out of GitHub, and never expose API keys, database credentials, or JWT secrets in public repositories.
 
 ### 4. Start PostgreSQL and Redis
 
-Ensure PostgreSQL is running and the database referenced by `DATABASE_URL` exists.
+Ensure PostgreSQL is running and the database specified by `DATABASE_URL` exists.
 
-If you use Docker for Redis:
+To start Redis using Docker:
 
 ```bash
 docker run -d --name smartprep-redis -p 6379:6379 redis:7
 ```
 
-If the container already exists, start it with:
+If the container already exists:
 
 ```bash
 docker start smartprep-redis
 ```
 
-### 5. Run Prisma migrations
+### 5. Generate Prisma Client and Apply Migrations
 
 Generate the Prisma Client:
 
@@ -199,45 +191,45 @@ Apply existing migrations:
 npx prisma migrate deploy
 ```
 
-For local development, if you are creating and managing migrations, use:
+For local development where you manage migrations, use:
 
 ```bash
 npx prisma migrate dev
 ```
 
-Use the migration command appropriate for your environment; do not run both commands indiscriminately.
+Choose the migration command appropriate to your environment.
 
-### 6. Start the backend
+### 6. Start the Backend
 
-Use the development script defined in your `package.json`, for example:
+If your `package.json` defines a development script:
 
 ```bash
 npm run dev
 ```
 
-Alternatively, if your project uses a different start script:
+Otherwise, use the start script defined by your project:
 
 ```bash
 npm start
 ```
 
-The API will be available at the configured host and port, such as `http://localhost:5000`.
+The API will be available at the configured host and port, for example `http://localhost:5000`.
 
-Start the BullMQ worker separately if it is not automatically launched by the application.
+Start the BullMQ worker separately if it is not launched automatically by the application.
 
 ## API Documentation
 
-The following endpoints illustrate the core API functionality. Confirm the exact paths and HTTP methods against your Express route files.
+The following table describes representative endpoints. Verify the exact paths and HTTP methods against your Express route files before publishing.
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
 | POST | `/api/auth/register` | Register a user | Public |
 | POST | `/api/auth/login` | Authenticate a user | Public |
 | POST | `/api/quiz/create` | Create a quiz | Admin |
-| POST | `/api/quiz/:quizId/add-question` | Add a question | Admin |
+| POST | `/api/quiz/:quizId/add-question` | Add a quiz question | Admin |
 | GET | `/api/quiz` | Retrieve paginated quizzes | Authenticated |
 | GET | `/api/quiz/:quizId` | Retrieve quiz details | Authenticated |
-| POST | `/api/quiz/submit` | Submit a quiz for processing | Student |
+| POST | `/api/quiz/submit` | Submit a quiz | Student |
 | GET | `/api/quiz/analytics` | Retrieve quiz analytics | Authenticated |
 | POST | `/api/coding/create` | Create a coding challenge | Admin |
 | GET | `/api/coding` | List coding challenges | Authenticated |
@@ -247,106 +239,140 @@ The following endpoints illustrate the core API functionality. Confirm the exact
 | GET | `/api/leaderboard` | Retrieve leaderboard data | Authenticated |
 | GET | `/api/health` | Check service health | As configured |
 
-Your project may also contain additional administrative or analytics routes.
+Gemini-powered question generation may use an additional endpoint. Add its exact route once confirmed in your implementation.
 
-### Authentication
+## Authentication and Authorization
 
-Protected endpoints use a JWT access token. After signing in, include the token in the request headers:
+Protected endpoints require a JWT access token.
+
+Include the token in the request header:
 
 ```http
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
-The authentication middleware verifies the token and identifies the current user. Authorization middleware checks the user's role before allowing access to role-restricted endpoints.
+The authentication middleware verifies the token and identifies the current user. Role-based authorization restricts administrative operations to users with the appropriate role.
 
-### Pagination
+Passwords are hashed using bcrypt rather than stored as plain text.
 
-Quiz listings support pagination to limit the number of records returned per request.
+## AI-Powered Question Generation
+
+The Google Gemini API is integrated to generate quiz and practice questions.
+
+The general workflow is:
+
+1. The client requests quiz or practice question generation.
+2. The backend validates the request.
+3. The backend sends a suitable prompt to the Gemini API.
+4. The generated content is processed by the backend.
+5. The resulting questions are returned to the client or stored, depending on the implemented workflow.
+
+Generated questions should be validated before being stored or used in assessments. AI-generated content may contain inaccuracies, so review is important for assessment quality.
+
+## Redis Caching
+
+Redis caches paginated quiz listings to reduce repeated database reads.
+
+A cache key can include pagination parameters, such as:
+
+```text
+quizzes:page:1:limit:10
+```
+
+When a matching cache entry exists, the backend can return the cached response. Otherwise, it queries PostgreSQL, constructs the response, and stores the result in Redis with a configured expiration time.
+
+Cache invalidation should be handled when quiz data changes.
+
+## Asynchronous Processing with BullMQ
+
+Quiz submissions are added to a BullMQ queue backed by Redis.
+
+The workflow is:
+
+1. Receive the quiz submission.
+2. Add a job to the queue.
+3. Return an acknowledgement to the client.
+4. Process the job in a background worker.
+5. Calculate the score and persist the attempt.
+6. Make the result available through the application's result-retrieval workflow.
+
+The initial acknowledgement does not guarantee that scoring has completed. A result endpoint, job-status mechanism, or polling workflow can be used to retrieve the final result.
+
+## Coding Assessments with Judge0
+
+Judge0 provides the code execution environment for supported programming languages.
+
+The workflow is:
+
+1. Receive source code and the selected language.
+2. Validate the submission and enforce rate limits.
+3. Send the code and test-case input to Judge0.
+4. Collect compilation and execution results.
+5. Compare actual output with expected output.
+6. Calculate test-case results and persist the submission.
+7. Expose results through the appropriate API.
+
+Execution time and memory consumption vary according to the submitted program and test cases.
+
+## Request Validation and Rate Limiting
+
+**Zod validation:** Validates incoming payloads against defined schemas and returns structured errors for invalid requests.
+
+**Rate limiting:** Restricts excessive requests to protect API availability and external execution resources. The configured limits and their scope depend on the middleware applied to each route.
+
+## Health Monitoring
+
+A health endpoint can check whether PostgreSQL and Redis are reachable.
 
 Example:
 
 ```http
-GET /api/quiz?page=1&limit=10
+GET /api/health
 ```
 
-The actual parameter names depend on your implementation. Redis cache keys should distinguish pagination parameters so that different pages and limits do not return the same cached response.
-
-### Quiz Submission and Background Processing
-
-Quiz submissions are added to a BullMQ queue for background processing. The API can return an acknowledgement before the worker finishes calculating and storing the score.
-
-Clients that need the final result should use the result-retrieval endpoint or polling mechanism implemented by the application. A successful submission acknowledgement does not necessarily mean scoring has finished.
-
-### Coding Assessment Workflow
-
-1. An administrator creates a coding challenge and its test cases.
-2. A student submits code and selects a supported programming language.
-3. The backend sends the code and test-case input to Judge0.
-4. The backend evaluates execution results against expected outputs.
-5. The submission result and relevant performance information are stored and made available through the application's result or analytics endpoints.
-
-Execution time and memory consumption depend on the submitted program, test cases, and execution environment.
-
-## Security
-
-The backend uses several security controls:
-
-- JWT-based authentication for protected routes.
-- bcrypt for password hashing.
-- Role-based authorization for administrative operations.
-- Zod validation for request payloads.
-- Rate limiting to restrict excessive requests.
-- Environment variables for sensitive configuration.
-
-Keep dependencies updated, validate user input on the server, and ensure secrets are excluded from version control.
+The response depends on your implementation and may report database connectivity, Redis connectivity, and process uptime.
 
 ## Testing
 
-Use Postman or your automated test suite to verify the following workflows:
+Use Postman and your automated test suite to verify the following:
 
-1. Register a student and sign in.
-2. Verify that protected endpoints reject missing or invalid JWTs.
-3. Verify that only administrators can create quizzes and coding challenges.
-4. Retrieve quizzes with different pagination parameters.
-5. Repeat a quiz-list request and verify cache behavior where exposed.
-6. Submit a quiz and verify that the background worker processes it.
-7. Submit coding solutions with both passing and failing test cases.
-8. Verify rate limiting by sending requests above the configured threshold.
-9. Check the health endpoint while PostgreSQL and Redis are available.
-10. Verify that analytics and leaderboard responses reflect persisted results.
+- User registration and login.
+- JWT authentication and role-based access.
+- Admin-only quiz and coding-challenge creation.
+- Pagination with different page and limit values.
+- Redis cache hits and misses.
+- Gemini question generation and invalid-input handling.
+- Quiz submission and background worker processing.
+- Coding submissions with passing and failing test cases.
+- Rate limiting when the configured threshold is exceeded.
+- Analytics and leaderboard calculations.
+- Health checks when PostgreSQL and Redis are running.
 
-For reproducible performance metrics, document the test environment, dataset size, number of requests, concurrency, and whether the Redis cache was warm or cold.
+For reproducible performance measurements, record the environment, dataset size, number of requests, concurrency, and cache state.
 
 ## Performance Results
 
-The following values summarize the measured optimizations:
+Paginated quiz retrieval improved from 88 ms to 17 ms.
 
-| Operation | Before / Baseline | After / Measured |
-|---|---:|---:|
-| Paginated quiz retrieval | 88 ms | 17 ms |
-| Quiz submission API response | Depends on synchronous work | Under 40 ms with queued processing |
+**Latency reduction = ((88 − 17) / 88) × 100 = 80.7%**
 
-The quiz retrieval latency reduction is approximately 80.7%, calculated as:
-
-**Improvement (%) = ((88 − 17) / 88) × 100 = 80.7%**
-
-Quiz submission latency and background processing completion time are different measurements. The under-40-ms figure refers to the API response acknowledgement, not the total time required to finish scoring.
+Quiz submissions returned an acknowledgement in under 40 ms in measured tests while scoring continued asynchronously. This measures API responsiveness rather than total job completion time.
 
 ## Future Improvements
 
-- Add dedicated API documentation using Swagger/OpenAPI.
-- Add integration tests for authentication, quiz submission, and code execution.
-- Introduce structured logging and centralized error handling.
-- Add queue retry policies, failure handling, and job-status tracking.
-- Add cache invalidation when quizzes are created or updated.
-- Improve monitoring with request-latency and queue-processing metrics.
-- Add deployment automation and CI checks.
+- Document all routes with Swagger/OpenAPI.
+- Expand automated integration and load testing.
+- Add queue retries, failure handling, and job-status tracking.
+- Improve cache invalidation and cache observability.
+- Add structured logging and centralized error handling.
+- Add CI checks and deployment automation.
+- Improve validation and quality checks for AI-generated questions.
 
 ## Author
 
-**Siva Teja**
+**Venkata Siva Teja**
 
-GitHub: https://github.com/sivateja-tech
+GitHub:https://github.com/sivateja-tech
 
 ---
 
