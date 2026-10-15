@@ -328,9 +328,7 @@ The following values summarize the measured optimizations:
 
 The quiz retrieval latency reduction is approximately 80.7%, calculated as:
 
-\[
-\frac{88-17}{88}\times100 \approx 80.7\%
-\]
+**Improvement (%) = ((88 − 17) / 88) × 100 = 80.7%**
 
 Quiz submission latency and background processing completion time are different measurements. The under-40-ms figure refers to the API response acknowledgement, not the total time required to finish scoring.
 
